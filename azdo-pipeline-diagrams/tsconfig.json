@@ -12,5 +12,5 @@
     "skipLibCheck": true,
     "types": ["node", "vscode"]
   },
-  "include": ["src/**/*.ts", "test/**/*.ts", "esbuild.mjs", "vitest.config.ts"]
+  "include": ["src/**/*.ts", "test/**/*.ts", "esbuild.mjs", "vitest.config.mts"]
 }

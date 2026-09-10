@@ -17,7 +17,9 @@
     "onCommand:azdoDiagram.openPreviewForFile",
     "onCommand:azdoDiagram.exportDiagram",
     "onCommand:azdoDiagram.refreshSchema",
-    "onCommand:azdoDiagram.mapRepository"
+    "onCommand:azdoDiagram.mapRepository",
+    "onCommand:azdoDiagram.saveParameterPreset",
+    "onCommand:azdoDiagram.loadParameterPreset"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -45,6 +47,14 @@
       {
         "command": "azdoDiagram.mapRepository",
         "title": "AzDO Diagram: Map Repository…"
+      },
+      {
+        "command": "azdoDiagram.saveParameterPreset",
+        "title": "AzDO Diagram: Save Parameter Preset…"
+      },
+      {
+        "command": "azdoDiagram.loadParameterPreset",
+        "title": "AzDO Diagram: Load Parameter Preset…"
       }
     ],
     "menus": {
@@ -130,7 +140,7 @@
     "esbuild": "^0.28.1",
     "eslint": "^8.57.1",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.11"
   },
   "dependencies": {
     "elkjs": "^0.11.0",

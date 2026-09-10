@@ -16,6 +16,7 @@ class PreviewController {
   private watchers = new Map<string, vscode.FileSystemWatcher>();
   private nodeIndex = new Map<string, { file: string; line: number }>();
   private parameterValues: Record<string, unknown> = {};
+  private compareParameterValues?: Record<string, unknown>;
   private detailLevel: 'stages' | 'jobs' | 'full' = 'jobs';
   private pendingTimer?: NodeJS.Timeout;
   private fileTextCache = new Map<string, string>();
@@ -63,6 +64,9 @@ class PreviewController {
       if (msg.type === 'detailLevel') {
         this.detailLevel = msg.value;
         this.scheduleRefresh();
+      }
+      if (msg.type === 'toggleCompare') {
+        await this.toggleCompareMode();
       }
       if (msg.type === 'exportRequest') {
         await vscode.commands.executeCommand('azdoDiagram.exportDiagram');
@@ -129,7 +133,7 @@ class PreviewController {
     this.nodeIndex.clear();
     for (const node of graph.nodes) {
       const file = node.file ?? doc.uri.fsPath;
-      this.nodeIndex.set(node.id, { file, line: await this.findBestLine(file, node.kind, node.label) });
+      this.nodeIndex.set(`base:${node.id}`, { file, line: await this.findBestLine(file, node.kind, node.label) });
     }
 
     const diagnostics: vscode.Diagnostic[] = [];
@@ -143,10 +147,21 @@ class PreviewController {
     }
     this.diagnostics.set(doc.uri, diagnostics);
 
+    let compareGraph: ReturnType<typeof buildGraph> | undefined;
+    if (this.compareParameterValues) {
+      const compareResolved = await resolver.resolve({ rootFile: doc.uri.fsPath, rootContent: doc.getText(), parameterOverrides: this.compareParameterValues });
+      compareGraph = this.filterGraphByDetailLevel(buildGraph(compareResolved.expanded, compareResolved.provenanceByPath));
+      for (const node of compareGraph.nodes) {
+        const file = node.file ?? doc.uri.fsPath;
+        this.nodeIndex.set(`compare:${node.id}`, { file, line: await this.findBestLine(file, node.kind, node.label) });
+      }
+    }
+
     this.panel.webview.postMessage({
       type: 'graph',
       detailLevel: this.detailLevel,
       graph,
+      compareGraph,
       parameters: resolved.parameters.map((p) => ({
         name: p.name,
         type: p.type,
@@ -168,6 +183,45 @@ class PreviewController {
 
   hasDependency(fsPath: string): boolean {
     return this.resolverDependencies.has(fsPath);
+  }
+
+  async saveParameterPreset(): Promise<void> {
+    const name = await vscode.window.showInputBox({ prompt: 'Preset name' });
+    if (!name) return;
+    const config = vscode.workspace.getConfiguration('azdoDiagram');
+    const presets = config.get<Record<string, Record<string, unknown>>>('parameterPresets', {});
+    presets[name] = { ...this.parameterValues };
+    await config.update('parameterPresets', presets, vscode.ConfigurationTarget.Workspace);
+    void vscode.window.showInformationMessage(`Saved preset '${name}'.`);
+  }
+
+  async loadParameterPreset(): Promise<void> {
+    const config = vscode.workspace.getConfiguration('azdoDiagram');
+    const presets = config.get<Record<string, Record<string, unknown>>>('parameterPresets', {});
+    const pick = await vscode.window.showQuickPick(Object.keys(presets), { title: 'Load parameter preset' });
+    if (!pick) return;
+    this.parameterValues = { ...presets[pick] };
+    this.compareParameterValues = undefined;
+    this.scheduleRefresh();
+  }
+
+  private async toggleCompareMode(): Promise<void> {
+    if (this.compareParameterValues) {
+      this.compareParameterValues = undefined;
+      this.scheduleRefresh();
+      return;
+    }
+    const config = vscode.workspace.getConfiguration('azdoDiagram');
+    const presets = config.get<Record<string, Record<string, unknown>>>('parameterPresets', {});
+    const names = Object.keys(presets);
+    if (names.length === 0) {
+      void vscode.window.showWarningMessage('No parameter presets configured. Save a preset first.');
+      return;
+    }
+    const pick = await vscode.window.showQuickPick(names, { title: 'Select comparison preset' });
+    if (!pick) return;
+    this.compareParameterValues = { ...presets[pick] };
+    this.scheduleRefresh();
   }
 
   private filterGraphByDetailLevel(graph: ReturnType<typeof buildGraph>): ReturnType<typeof buildGraph> {
@@ -314,6 +368,14 @@ export function activate(context: vscode.ExtensionContext): void {
     const mappings = config.get<Record<string, string>>('repositoryMappings', {});
     await config.update('repositoryMappings', { ...mappings, [alias]: picked[0].fsPath }, vscode.ConfigurationTarget.Workspace);
     void vscode.window.showInformationMessage(`Mapped ${alias} -> ${picked[0].fsPath}`);
+  }));
+
+  context.subscriptions.push(vscode.commands.registerCommand('azdoDiagram.saveParameterPreset', async () => {
+    await preview.saveParameterPreset();
+  }));
+
+  context.subscriptions.push(vscode.commands.registerCommand('azdoDiagram.loadParameterPreset', async () => {
+    await preview.loadParameterPreset();
   }));
 
   context.subscriptions.push(vscode.workspace.onDidChangeTextDocument((e) => {

@@ -18,6 +18,7 @@ toolbar.innerHTML = `
 <button id="fit">Fit</button>
 <button id="export">Export</button>
 <button id="params">Parameters</button>
+<button id="compare">Compare</button>
 `;
 const content = document.createElement('div');
 content.id = 'content';
@@ -27,21 +28,32 @@ paramsPanel.hidden = true;
 app.append(toolbar, paramsPanel, content);
 
 let currentGraph: { nodes: Node[]; edges: Edge[] } = { nodes: [], edges: [] };
+let currentCompareGraph: { nodes: Node[]; edges: Edge[] } | undefined;
 let currentSvg: SVGSVGElement | null = null;
 let currentParameters: Array<{ name: string; type: string; values?: unknown[]; defaultValue?: unknown }> = [];
 
 (document.getElementById('params') as HTMLButtonElement).onclick = () => { paramsPanel.hidden = !paramsPanel.hidden; };
 (document.getElementById('export') as HTMLButtonElement).onclick = () => vscode.postMessage({ type: 'exportRequest' });
+(document.getElementById('compare') as HTMLButtonElement).onclick = () => vscode.postMessage({ type: 'toggleCompare' });
 (document.getElementById('detail') as HTMLSelectElement).onchange = (e) => vscode.postMessage({ type: 'detailLevel', value: (e.target as HTMLSelectElement).value });
 (document.getElementById('direction') as HTMLSelectElement).onchange = () => render();
 
-async function render(): Promise<void> {
+function signature(node: Node): string {
+  return `${node.kind}:${node.label}`;
+}
+
+async function renderGraph(
+  graph: { nodes: Node[]; edges: Edge[] },
+  mount: HTMLElement,
+  side: 'base' | 'compare',
+  onlySet: Set<string>
+): Promise<SVGSVGElement | null> {
   const dir = (document.getElementById('direction') as HTMLSelectElement).value;
   const layout = await elk.layout({
     id: 'root',
     layoutOptions: { 'elk.algorithm': 'layered', 'elk.direction': dir, 'elk.layered.spacing.nodeNodeBetweenLayers': '60' },
-    children: currentGraph.nodes.map((n) => ({ id: n.id, width: 180, height: 56 })),
-    edges: currentGraph.edges.map((e) => ({ id: e.id, sources: [e.source], targets: [e.target] }))
+    children: graph.nodes.map((n) => ({ id: n.id, width: 180, height: 56 })),
+    edges: graph.edges.map((e) => ({ id: e.id, sources: [e.source], targets: [e.target] }))
   });
 
   const width = Math.max(400, ...(layout.children?.map((c) => (c.x ?? 0) + (c.width ?? 180)) ?? [400])) + 80;
@@ -58,7 +70,7 @@ async function render(): Promise<void> {
   defs.innerHTML = '<marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L10,3 L0,6 z" fill="currentColor"/></marker>';
   svg.appendChild(defs);
 
-  for (const edge of currentGraph.edges) {
+  for (const edge of graph.edges) {
     const s = pos.get(edge.source);
     const t = pos.get(edge.target);
     if (!s || !t) continue;
@@ -72,7 +84,7 @@ async function render(): Promise<void> {
     svg.appendChild(line);
   }
 
-  for (const node of currentGraph.nodes) {
+  for (const node of graph.nodes) {
     const p = pos.get(node.id);
     if (!p) continue;
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -83,20 +95,45 @@ async function render(): Promise<void> {
     r.setAttribute('width', '180');
     r.setAttribute('height', '56');
     r.setAttribute('rx', '8');
-    r.setAttribute('class', `node ${node.kind}`);
+    const extra = onlySet.has(signature(node)) ? ' diff-node' : '';
+    r.setAttribute('class', `node ${node.kind}${extra}`);
     const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     t.setAttribute('x', String((p.x ?? 0) + 10));
     t.setAttribute('y', String((p.y ?? 0) + 30));
     t.setAttribute('class', 'label');
     t.textContent = node.label;
     g.append(r, t);
-    g.addEventListener('click', () => vscode.postMessage({ type: 'revealNode', nodeId: node.id }));
+    g.addEventListener('click', () => vscode.postMessage({ type: 'revealNode', nodeId: `${side}:${node.id}` }));
     svg.appendChild(g);
   }
 
+  mount.appendChild(svg);
+  return svg;
+}
+
+async function render(): Promise<void> {
   content.innerHTML = '';
-  content.appendChild(svg);
-  currentSvg = svg;
+  if (!currentCompareGraph) {
+    currentSvg = await renderGraph(currentGraph, content, 'base', new Set());
+    return;
+  }
+  const split = document.createElement('div');
+  split.className = 'compare-layout';
+  const left = document.createElement('div');
+  const right = document.createElement('div');
+  left.className = 'compare-pane';
+  right.className = 'compare-pane';
+  left.innerHTML = '<h3>Base</h3>';
+  right.innerHTML = '<h3>Compare</h3>';
+  split.append(left, right);
+  content.appendChild(split);
+
+  const baseSet = new Set(currentGraph.nodes.map(signature));
+  const compareSet = new Set(currentCompareGraph.nodes.map(signature));
+  const onlyBase = new Set([...baseSet].filter((x) => !compareSet.has(x)));
+  const onlyCompare = new Set([...compareSet].filter((x) => !baseSet.has(x)));
+  currentSvg = await renderGraph(currentGraph, left, 'base', onlyBase);
+  await renderGraph(currentCompareGraph, right, 'compare', onlyCompare);
 }
 
 function renderParameters(): void {
@@ -191,6 +228,7 @@ window.addEventListener('message', async (event) => {
   const msg = event.data;
   if (msg.type === 'graph') {
     currentGraph = msg.graph;
+    currentCompareGraph = msg.compareGraph;
     currentParameters = msg.parameters ?? [];
     if (msg.detailLevel) {
       (document.getElementById('detail') as HTMLSelectElement).value = msg.detailLevel;

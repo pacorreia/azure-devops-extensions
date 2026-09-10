@@ -17,6 +17,8 @@ VS Code extension to visualize Azure DevOps YAML pipelines/templates and export 
 - `AzDO Diagram: Export Diagram…`
 - `AzDO Diagram: Refresh Schema`
 - `AzDO Diagram: Map Repository…`
+- `AzDO Diagram: Save Parameter Preset…`
+- `AzDO Diagram: Load Parameter Preset…`
 
 ## Settings
 
@@ -44,7 +46,6 @@ For `template: path@alias`, the resolver tries:
 ## Limitations
 
 - Runtime `$[ ]` expressions and runtime `condition` logic are not evaluated; conditions are shown as labels.
-- Compare mode UI and full org-specific schema merge are future improvements.
 
 ## Development
 
