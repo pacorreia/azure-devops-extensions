@@ -22,12 +22,30 @@
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
-      { "command": "azdoDiagram.openPreview", "title": "AzDO Diagram: Open Preview" },
-      { "command": "azdoDiagram.openPreviewToSide", "title": "AzDO Diagram: Open Preview to the Side" },
-      { "command": "azdoDiagram.openPreviewForFile", "title": "AzDO Diagram: Open Preview for File…" },
-      { "command": "azdoDiagram.exportDiagram", "title": "AzDO Diagram: Export Diagram…" },
-      { "command": "azdoDiagram.refreshSchema", "title": "AzDO Diagram: Refresh Schema" },
-      { "command": "azdoDiagram.mapRepository", "title": "AzDO Diagram: Map Repository…" }
+      {
+        "command": "azdoDiagram.openPreview",
+        "title": "AzDO Diagram: Open Preview"
+      },
+      {
+        "command": "azdoDiagram.openPreviewToSide",
+        "title": "AzDO Diagram: Open Preview to the Side"
+      },
+      {
+        "command": "azdoDiagram.openPreviewForFile",
+        "title": "AzDO Diagram: Open Preview for File…"
+      },
+      {
+        "command": "azdoDiagram.exportDiagram",
+        "title": "AzDO Diagram: Export Diagram…"
+      },
+      {
+        "command": "azdoDiagram.refreshSchema",
+        "title": "AzDO Diagram: Refresh Schema"
+      },
+      {
+        "command": "azdoDiagram.mapRepository",
+        "title": "AzDO Diagram: Map Repository…"
+      }
     ],
     "menus": {
       "editor/title": [
@@ -41,16 +59,59 @@
     "configuration": {
       "title": "AzDO Pipeline Diagram",
       "properties": {
-        "azdoDiagram.organization": { "type": "string", "default": "", "description": "Azure DevOps organization for schema fetch." },
-        "azdoDiagram.schemaUrl": { "type": "string", "default": "", "description": "Optional schema URL override." },
-        "azdoDiagram.repositoryMappings": { "type": "object", "default": {}, "description": "Repo alias/name to absolute local path mappings." },
-        "azdoDiagram.maxTemplateDepth": { "type": "number", "default": 50, "minimum": 1 },
-        "azdoDiagram.parameterPresets": { "type": "object", "default": {} },
-        "azdoDiagram.defaultDetailLevel": { "type": "string", "enum": ["stages", "jobs", "full"], "default": "jobs" },
-        "azdoDiagram.export.scale": { "type": "number", "default": 2, "minimum": 1, "maximum": 8 },
-        "azdoDiagram.export.background": { "type": "string", "default": "", "description": "Export background color. Empty means transparent (except JPEG/PDF fallback to white)." },
-        "azdoDiagram.export.includeParameters": { "type": "boolean", "default": true },
-        "azdoDiagram.liveUpdateDebounceMs": { "type": "number", "default": 300, "minimum": 50 }
+        "azdoDiagram.organization": {
+          "type": "string",
+          "default": "",
+          "description": "Azure DevOps organization for schema fetch."
+        },
+        "azdoDiagram.schemaUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Optional schema URL override."
+        },
+        "azdoDiagram.repositoryMappings": {
+          "type": "object",
+          "default": {},
+          "description": "Repo alias/name to absolute local path mappings."
+        },
+        "azdoDiagram.maxTemplateDepth": {
+          "type": "number",
+          "default": 50,
+          "minimum": 1
+        },
+        "azdoDiagram.parameterPresets": {
+          "type": "object",
+          "default": {}
+        },
+        "azdoDiagram.defaultDetailLevel": {
+          "type": "string",
+          "enum": [
+            "stages",
+            "jobs",
+            "full"
+          ],
+          "default": "jobs"
+        },
+        "azdoDiagram.export.scale": {
+          "type": "number",
+          "default": 2,
+          "minimum": 1,
+          "maximum": 8
+        },
+        "azdoDiagram.export.background": {
+          "type": "string",
+          "default": "",
+          "description": "Export background color. Empty means transparent (except JPEG/PDF fallback to white)."
+        },
+        "azdoDiagram.export.includeParameters": {
+          "type": "boolean",
+          "default": true
+        },
+        "azdoDiagram.liveUpdateDebounceMs": {
+          "type": "number",
+          "default": 300,
+          "minimum": 50
+        }
       }
     }
   },
@@ -66,7 +127,7 @@
     "@types/vscode": "^1.85.0",
     "@typescript-eslint/eslint-plugin": "^8.44.0",
     "@typescript-eslint/parser": "^8.44.0",
-    "esbuild": "^0.25.9",
+    "esbuild": "^0.28.1",
     "eslint": "^8.57.1",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
