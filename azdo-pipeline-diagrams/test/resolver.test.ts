@@ -93,8 +93,10 @@ describe('resolver', () => {
     const result = await resolver.resolve({ rootFile: root, rootContent: await fs.readFile(root, 'utf8') });
     const graph = buildGraph(result.expanded, result.provenanceByPath);
     const buildStage = graph.nodes.find((node) => node.kind === 'stage' && node.label === 'Build');
+    const testStep = graph.nodes.find((node) => node.kind === 'step' && node.label === 'echo test demo');
 
     expect(buildStage?.file).toBe(fixture('base.yml'));
+    expect(testStep?.file).toBe(fixture('steps-test.yml'));
   });
 
   it('rejects templates that escape the repository root through symlinks', async () => {

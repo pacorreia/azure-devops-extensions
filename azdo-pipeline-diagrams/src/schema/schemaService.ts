@@ -5,7 +5,9 @@ const CACHE_KEY = 'azdoDiagram.schema.cache';
 const CACHE_URL_KEY = 'azdoDiagram.schema.cacheUrl';
 
 export class SchemaService {
-  constructor(private readonly context: vscode.ExtensionContext) {}
+  constructor(private readonly context: vscode.ExtensionContext) {
+    // Intentionally empty.
+  }
 
   getBundledSchema(): unknown {
     return bundledSchema;

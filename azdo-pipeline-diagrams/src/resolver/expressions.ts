@@ -1,16 +1,40 @@
+function coerceToLeftType(left: unknown, right: unknown): unknown {
+  if (typeof left === 'string') return String(right ?? '');
+  if (typeof left === 'number') return Number(right);
+  if (typeof left === 'boolean') {
+    if (typeof right === 'boolean') return right;
+    if (typeof right === 'number') return right !== 0;
+    const normalized = String(right ?? '').trim().toLowerCase();
+    if (normalized === 'true') return true;
+    if (normalized === 'false') return false;
+    return Boolean(right);
+  }
+  return right;
+}
+
+function azureEquals(left: unknown, right: unknown): boolean {
+  const coercedRight = coerceToLeftType(left, right);
+  if (typeof left === 'string' && typeof coercedRight === 'string') {
+    return left.localeCompare(coercedRight, undefined, { sensitivity: 'accent' }) === 0;
+  }
+  return left === coercedRight;
+}
+
 const functionTable: Record<string, (...args: unknown[]) => unknown> = {
-  eq: (a, b) => a === b,
-  ne: (a, b) => a !== b,
+  eq: (a, b) => azureEquals(a, b),
+  ne: (a, b) => !azureEquals(a, b),
   and: (...a) => a.every(Boolean),
   or: (...a) => a.some(Boolean),
   not: (a) => !a,
   xor: (a, b) => Boolean(a) !== Boolean(b),
   contains: (a, b) => String(a ?? '').includes(String(b ?? '')),
-  containsValue: (a, b) => Array.isArray(a) ? a.includes(b) : Object.values((a ?? {}) as Record<string, unknown>).includes(b),
+  containsValue: (a, b) => Array.isArray(a)
+    ? a.some((value) => azureEquals(value, b))
+    : Object.values((a ?? {}) as Record<string, unknown>).some((value) => azureEquals(value, b)),
   startsWith: (a, b) => String(a ?? '').startsWith(String(b ?? '')),
   endsWith: (a, b) => String(a ?? '').endsWith(String(b ?? '')),
-  in: (a, ...list) => list.includes(a),
-  notIn: (a, ...list) => !list.includes(a),
+  in: (a, ...list) => list.some((item) => azureEquals(a, item)),
+  notIn: (a, ...list) => !list.some((item) => azureEquals(a, item)),
   coalesce: (...a) => a.find((x) => x !== null && x !== undefined && x !== ''),
   format: (fmt, ...a) => String(fmt ?? '').replace(/\{(\d+)\}/g, (_, i) => String(a[Number(i)] ?? '')),
   length: (a) => (Array.isArray(a) || typeof a === 'string') ? a.length : Object.keys((a ?? {}) as Record<string, unknown>).length,
@@ -96,7 +120,7 @@ export function evaluateExpression(input: string, ctx: ExpressionContext): unkno
   if (expr.startsWith('parameters.')) return resolvePath(ctx.parameters, expr.slice('parameters.'.length));
   if (expr.startsWith('variables.')) return resolvePath(ctx.variables, expr.slice('variables.'.length));
   if (expr.startsWith("parameters['") && expr.endsWith("']")) return ctx.parameters[expr.slice(12, -2)];
-  if (expr.startsWith("variables['") && expr.endsWith("']")) return ctx.variables[expr.slice(10, -2)];
+  if (expr.startsWith("variables['") && expr.endsWith("']")) return ctx.variables[expr.slice(11, -2)];
 
   const fnMatch = expr.match(/^([a-zA-Z_][\w]*)\((.*)\)$/);
   if (fnMatch) {

@@ -25,7 +25,9 @@ export class PipelineResolver {
   private dependencies = new Set<string>();
   private provenanceByPath: Record<string, ProvenanceFrame[]> = {};
 
-  constructor(private readonly host: ResolverHost, private readonly settings: ResolverSettings) {}
+  constructor(private readonly host: ResolverHost, private readonly settings: ResolverSettings) {
+    // Intentionally empty.
+  }
 
   async resolve(input: ResolveInput): Promise<ResolveResult> {
     this.parsedCache.clear();
@@ -136,16 +138,16 @@ export class PipelineResolver {
     });
   }
 
-  private extractTemplateSequence(value: unknown, path: string): unknown[] | undefined {
+  private extractTemplateSequence(value: unknown, path: string): { key?: 'stages' | 'jobs' | 'steps'; items: unknown[] } | undefined {
     if (Array.isArray(value)) {
-      return value;
+      return { items: value };
     }
     if (!value || typeof value !== 'object') {
       return undefined;
     }
     const sequenceKey = path.match(/(?:^|\.)(stages|jobs|steps)$/)?.[1] as 'stages' | 'jobs' | 'steps' | undefined;
     const sequence = sequenceKey ? (value as Record<string, unknown>)[sequenceKey] : undefined;
-    return Array.isArray(sequence) ? sequence : undefined;
+    return Array.isArray(sequence) ? { key: sequenceKey, items: sequence } : undefined;
   }
 
   private isWithinRoot(file: string, root: string): boolean {
@@ -155,6 +157,21 @@ export class PipelineResolver {
 
   private annotate(path: string, chain: ProvenanceFrame[]): void {
     this.provenanceByPath[path] = chain;
+  }
+
+  private rebaseProvenancePath(sourcePrefix: string, targetPrefix: string): void {
+    const updates: Array<{ oldPath: string; newPath: string; chain: ProvenanceFrame[] }> = [];
+    for (const [existingPath, chain] of Object.entries(this.provenanceByPath)) {
+      if (existingPath === sourcePrefix) {
+        updates.push({ oldPath: existingPath, newPath: targetPrefix, chain });
+      } else if (existingPath.startsWith(`${sourcePrefix}.`) || existingPath.startsWith(`${sourcePrefix}[`)) {
+        updates.push({ oldPath: existingPath, newPath: `${targetPrefix}${existingPath.slice(sourcePrefix.length)}`, chain });
+      }
+    }
+    for (const update of updates) {
+      delete this.provenanceByPath[update.oldPath];
+      this.provenanceByPath[update.newPath] = update.chain;
+    }
   }
 
   private async expandAny(value: unknown, ctx: ResolveContext, stack: Set<string>, path: string): Promise<unknown> {
@@ -172,7 +189,13 @@ export class PipelineResolver {
           const expandedTemplate = await this.expandTemplateReference(item as Record<string, unknown>, ctx, stack, `${path}[${i}]`);
           const templateSequence = this.extractTemplateSequence(expandedTemplate, path);
           if (templateSequence) {
-            output.push(...templateSequence);
+            const startIndex = output.length;
+            output.push(...templateSequence.items);
+            if (templateSequence.key) {
+              for (let j = 0; j < templateSequence.items.length; j += 1) {
+                this.rebaseProvenancePath(`${path}[${i}].${templateSequence.key}[${j}]`, `${path}[${startIndex + j}]`);
+              }
+            }
           } else if (Array.isArray(expandedTemplate)) {
             output.push(...expandedTemplate);
           } else if (expandedTemplate !== undefined) {

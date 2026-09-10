@@ -20,7 +20,13 @@ class PreviewController {
   private pendingTimer?: NodeJS.Timeout;
   private fileTextCache = new Map<string, string>();
 
-  constructor(private readonly context: vscode.ExtensionContext, private readonly diagnostics: vscode.DiagnosticCollection, private readonly schemaService: SchemaService) {}
+  constructor(
+    private readonly context: vscode.ExtensionContext,
+    private readonly diagnostics: vscode.DiagnosticCollection,
+    private readonly schemaService: SchemaService
+  ) {
+    // Intentionally empty.
+  }
 
   open(uri: vscode.Uri, beside = false): void {
     this.fileUri = uri;
@@ -390,4 +396,6 @@ export function activate(context: vscode.ExtensionContext): void {
   }));
 }
 
-export function deactivate(): void {}
+export function deactivate(): void {
+  // Intentionally empty.
+}
