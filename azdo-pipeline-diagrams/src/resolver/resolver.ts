@@ -164,10 +164,14 @@ export class PipelineResolver {
       const input = value as Record<string, unknown>;
 
       if ('extends' in input && input.extends && typeof input.extends === 'object') {
-        const base = await this.expandTemplateReference(input.extends as Record<string, unknown>, ctx, stack, `${path}.extends`);
-        const merged = { ...(base as Record<string, unknown>), ...input };
-        delete merged.extends;
-        return this.expandAny(merged, ctx, stack, path);
+        const base = await this.expandTemplateReference(input.extends as Record<string, unknown>, ctx, stack, path);
+        const local = { ...input };
+        delete local.extends;
+        const expandedLocal = await this.expandAny(local, ctx, stack, path);
+        if (base && typeof base === 'object' && !Array.isArray(base) && expandedLocal && typeof expandedLocal === 'object' && !Array.isArray(expandedLocal)) {
+          return { ...(base as Record<string, unknown>), ...(expandedLocal as Record<string, unknown>) };
+        }
+        return expandedLocal ?? base;
       }
 
       const output: Record<string, unknown> = {};

@@ -75,4 +75,14 @@ describe('resolver', () => {
 
     expect(deployStep?.file).toBe(root);
   });
+
+  it('preserves template provenance when using extends', async () => {
+    const resolver = new PipelineResolver(createHost({ common: path.dirname(fixture('base.yml')) }), { maxTemplateDepth: 20 });
+    const root = fixture('root-extends.yml');
+    const result = await resolver.resolve({ rootFile: root, rootContent: await fs.readFile(root, 'utf8') });
+    const graph = buildGraph(result.expanded, result.provenanceByPath);
+    const buildStage = graph.nodes.find((node) => node.kind === 'stage' && node.label === 'Build');
+
+    expect(buildStage?.file).toBe(fixture('base.yml'));
+  });
 });
