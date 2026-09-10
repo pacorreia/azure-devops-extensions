@@ -120,7 +120,6 @@ class PreviewController {
     const parsed = parsePipelineDocument(doc.uri.fsPath, doc.getText());
 
     const config = vscode.workspace.getConfiguration('azdoDiagram');
-    await this.schemaService.getActiveSchema(config);
     const resolver = new PipelineResolver(createResolverHost(config), {
       maxTemplateDepth: config.get<number>('maxTemplateDepth', 50)
     });
