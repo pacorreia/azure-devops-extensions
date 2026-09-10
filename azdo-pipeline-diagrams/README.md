@@ -50,8 +50,8 @@ For `template: path@alias`, the resolver tries:
 ## Development
 
 ```bash
-npm ci
-npm run lint
-npm run build
-npm test
+pnpm install --frozen-lockfile
+pnpm run lint
+pnpm run build
+pnpm test
 ```

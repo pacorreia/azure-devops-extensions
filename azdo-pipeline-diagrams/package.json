@@ -3,6 +3,7 @@
   "displayName": "AzDO Pipeline Diagrams",
   "description": "Preview and export Azure DevOps YAML pipeline diagrams.",
   "version": "0.1.0",
+  "packageManager": "pnpm@12.3.4",
   "publisher": "pacorreia",
   "license": "MIT",
   "engines": {
@@ -130,7 +131,7 @@
     "watch": "node esbuild.mjs --watch",
     "lint": "eslint . --ext .ts",
     "test": "vitest run",
-    "check": "npm run lint && npm run build && npm run test"
+    "check": "pnpm run lint && pnpm run build && pnpm run test"
   },
   "devDependencies": {
     "@types/node": "^22.7.5",
