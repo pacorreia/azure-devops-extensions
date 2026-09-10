@@ -2,7 +2,6 @@ import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import * as vscode from 'vscode';
-import { parsePipelineDocument } from './parser';
 import { PipelineResolver } from './resolver/resolver';
 import type { ResolverHost } from './resolver/types';
 import { buildGraph } from './model/buildGraph';
@@ -117,8 +116,6 @@ class PreviewController {
     if (!this.panel || !this.fileUri) return;
     this.fileTextCache.clear();
     const doc = await vscode.workspace.openTextDocument(this.fileUri);
-    const parsed = parsePipelineDocument(doc.uri.fsPath, doc.getText());
-
     const config = vscode.workspace.getConfiguration('azdoDiagram');
     const resolver = new PipelineResolver(createResolverHost(config), {
       maxTemplateDepth: config.get<number>('maxTemplateDepth', 50)
@@ -136,10 +133,6 @@ class PreviewController {
     }
 
     const diagnostics: vscode.Diagnostic[] = [];
-    for (const d of parsed.diagnostics) {
-      const range = new vscode.Range(d.range?.start.line ?? 0, d.range?.start.column ?? 0, d.range?.end.line ?? 0, d.range?.end.column ?? 1);
-      diagnostics.push(new vscode.Diagnostic(range, d.message, vscode.DiagnosticSeverity.Error));
-    }
     for (const d of resolved.diagnostics) {
       const range = d.range
         ? new vscode.Range(d.range.start.line, d.range.start.column, d.range.end.line, d.range.end.column)
