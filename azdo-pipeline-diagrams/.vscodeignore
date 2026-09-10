@@ -3,5 +3,5 @@ test/**
 src/**
 *.ts
 .eslintrc.cjs
-vitest.config.ts
+vitest.config.mts
 node_modules/**/.cache/**

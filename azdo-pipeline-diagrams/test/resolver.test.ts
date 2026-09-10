@@ -1,9 +1,11 @@
 import path from 'node:path';
 import fs from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { PipelineResolver } from '../src/resolver/resolver';
 
-const fixture = (name: string) => path.resolve(__dirname, 'fixtures', name);
+const here = path.dirname(fileURLToPath(import.meta.url));
+const fixture = (name: string) => path.resolve(here, 'fixtures', name);
 
 function createHost(rootMap: Record<string, string> = {}) {
   return {

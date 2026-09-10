@@ -280,8 +280,9 @@ export class PipelineResolver {
 
     const normalizedRepoRoot = this.host.normalize(repoRoot);
     const resolvedFile = this.host.normalize(this.host.resolvePath(normalizedRepoRoot, templatePath));
-    const repoRootWithSep = normalizedRepoRoot.endsWith('/') ? normalizedRepoRoot : `${normalizedRepoRoot}/`;
-    if (resolvedFile !== normalizedRepoRoot && !resolvedFile.startsWith(repoRootWithSep)) {
+    const escapedRoot = normalizedRepoRoot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const inRoot = new RegExp(`^${escapedRoot}(?:[\\\\/]|$)`).test(resolvedFile);
+    if (!inRoot) {
       this.addDiagnostic(ctx.currentFile, `Template path escapes repository root: ${templateRef}`, 'error');
       return { type: 'placeholder', reason: 'invalid-template-path', template: templateRef };
     }

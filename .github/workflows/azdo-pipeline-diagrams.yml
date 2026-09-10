@@ -21,9 +21,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
-          cache: pnpm
-          cache-dependency-path: azdo-pipeline-diagrams/pnpm-lock.yaml
-      - uses: pnpm/action-setup@v4
+      - run: corepack enable
+      - run: corepack prepare pnpm@12.3.4 --activate
       - run: pnpm install --frozen-lockfile
       - run: pnpm run lint
       - run: pnpm run build

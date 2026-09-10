@@ -39,7 +39,7 @@ class PreviewController {
 
     const script = this.panel.webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'dist', 'webview.js'));
     const style = this.panel.webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'webview.css'));
-    this.panel.webview.html = `<!doctype html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src ${this.panel.webview.cspSource}; script-src ${this.panel.webview.cspSource};"><link rel="stylesheet" href="${style}"></head><body><div id="app"></div><script src="${script}"></script></body></html>`;
+    this.panel.webview.html = `<!doctype html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob:; style-src ${this.panel.webview.cspSource}; script-src ${this.panel.webview.cspSource};"><link rel="stylesheet" href="${style}"></head><body><div id="app"></div><script src="${script}"></script></body></html>`;
 
     this.panel.onDidDispose(() => {
       this.panel = undefined;
