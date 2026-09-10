@@ -28,6 +28,8 @@ export class PipelineResolver {
   constructor(private readonly host: ResolverHost, private readonly settings: ResolverSettings) {}
 
   async resolve(input: ResolveInput): Promise<ResolveResult> {
+    this.parsedCache.clear();
+    this.expansionCache.clear();
     this.diagnostics = [];
     this.dependencies = new Set([this.host.normalize(input.rootFile)]);
     this.provenanceByPath = {};
@@ -149,7 +151,11 @@ export class PipelineResolver {
           continue;
         }
         const expanded = await this.expandAny(item, ctx, stack, `${path}[${i}]`);
-        if (expanded !== undefined) output.push(expanded);
+        if (Array.isArray(expanded)) {
+          output.push(...expanded);
+        } else if (expanded !== undefined) {
+          output.push(expanded);
+        }
       }
       return output;
     }

@@ -73,12 +73,13 @@ export function buildGraph(expanded: Record<string, unknown>, provenanceByPath: 
 
       const deploymentSteps = (((job.strategy as Record<string, unknown> | undefined)?.runOnce as Record<string, unknown> | undefined)?.deploy as Record<string, unknown> | undefined)?.steps;
       const steps = asArray<Record<string, unknown>>(job.steps ?? deploymentSteps);
+      const stepPathPrefix = job.steps ? `${jobPath}.steps` : `${jobPath}.strategy.runOnce.deploy.steps`;
       let prevStepId: string | undefined;
       for (let k = 0; k < steps.length; k += 1) {
         const step = steps[k];
         const stepId = `${jobId}:step:${k}`;
         const label = toStr(step.displayName ?? step.task ?? step.script ?? step.bash ?? step.powershell, `Step ${k + 1}`);
-        nodes.push({ id: stepId, label, kind: 'step', parentId: jobId, condition: typeof step.condition === 'string' ? step.condition : undefined, file: sourceFile(`${jobPath}.steps[${k}]`) });
+        nodes.push({ id: stepId, label, kind: 'step', parentId: jobId, condition: typeof step.condition === 'string' ? step.condition : undefined, file: sourceFile(`${stepPathPrefix}[${k}]`) });
         edges.push({ id: `e:${jobId}:${stepId}`, source: jobId, target: stepId });
         if (prevStepId) {
           edges.push({ id: `e:${prevStepId}:${stepId}`, source: prevStepId, target: stepId });

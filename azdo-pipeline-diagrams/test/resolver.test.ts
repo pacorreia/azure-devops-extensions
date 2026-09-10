@@ -2,6 +2,7 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { buildGraph } from '../src/model/buildGraph';
 import { PipelineResolver } from '../src/resolver/resolver';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -48,6 +49,30 @@ describe('resolver', () => {
     const root = fixture('parameters-if-each.yml');
     const result = await resolver.resolve({ rootFile: root, rootContent: await fs.readFile(root, 'utf8'), parameterOverrides: { runTests: false, services: ['api'] } });
     const stages = result.expanded.stages as Array<Record<string, unknown>>;
-    expect(stages.length).toBeGreaterThan(0);
+    expect(stages).toHaveLength(2);
+    expect(stages.every((stage) => !Array.isArray(stage) && typeof stage === 'object')).toBe(true);
+  });
+
+  it('re-emits dependencies when the same resolver instance is reused', async () => {
+    const resolver = new PipelineResolver(createHost({ common: path.dirname(fixture('base.yml')) }), { maxTemplateDepth: 20 });
+    const root = fixture('root-extends.yml');
+    const rootContent = await fs.readFile(root, 'utf8');
+    const base = fixture('base.yml');
+
+    const first = await resolver.resolve({ rootFile: root, rootContent });
+    const second = await resolver.resolve({ rootFile: root, rootContent });
+
+    expect(first.dependencies).toContain(base);
+    expect(second.dependencies).toContain(base);
+  });
+
+  it('maps deployment strategy steps back to their source file', async () => {
+    const resolver = new PipelineResolver(createHost(), { maxTemplateDepth: 20 });
+    const root = fixture('simple.yml');
+    const result = await resolver.resolve({ rootFile: root, rootContent: await fs.readFile(root, 'utf8') });
+    const graph = buildGraph(result.expanded, result.provenanceByPath);
+    const deployStep = graph.nodes.find((node) => node.kind === 'step' && node.label === 'echo deploy');
+
+    expect(deployStep?.file).toBe(root);
   });
 });
