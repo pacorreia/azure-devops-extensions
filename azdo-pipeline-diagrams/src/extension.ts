@@ -142,7 +142,9 @@ class PreviewController {
       diagnostics.push(new vscode.Diagnostic(range, d.message, vscode.DiagnosticSeverity.Error));
     }
     for (const d of resolved.diagnostics) {
-      const range = new vscode.Range(0, 0, 0, 1);
+      const range = d.range
+        ? new vscode.Range(d.range.start.line, d.range.start.column, d.range.end.line, d.range.end.column)
+        : new vscode.Range(0, 0, 0, 1);
       diagnostics.push(new vscode.Diagnostic(range, d.message, d.severity === 'error' ? vscode.DiagnosticSeverity.Error : vscode.DiagnosticSeverity.Warning));
     }
     this.diagnostics.set(doc.uri, diagnostics);
