@@ -149,6 +149,9 @@ class PreviewController {
         const file = node.file ?? doc.uri.fsPath;
         this.nodeIndex.set(`compare:${node.id}`, { file, line: await this.findBestLine(file, node.kind, node.label) });
       }
+      const allDeps = [...new Set([...resolved.dependencies, ...compareResolved.dependencies])];
+      this.resolverDependencies = new Set(allDeps);
+      this.syncWatchers(allDeps);
     }
 
     this.panel.webview.postMessage({
