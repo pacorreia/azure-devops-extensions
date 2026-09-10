@@ -154,11 +154,13 @@ function renderParameters(): void {
     if (p.type === 'boolean') {
       const checkbox = document.createElement('input');
       checkbox.type = 'checkbox';
+      checkbox.setAttribute('aria-label', p.name);
       checkbox.checked = Boolean(p.defaultValue);
       checkbox.onchange = () => vscode.postMessage({ type: 'parameterChanged', name: p.name, value: checkbox.checked });
       input = checkbox;
     } else if (Array.isArray(p.values) && p.values.length > 0) {
       const select = document.createElement('select');
+      select.setAttribute('aria-label', p.name);
       for (const v of p.values) {
         const opt = document.createElement('option');
         opt.value = String(v);
@@ -170,6 +172,7 @@ function renderParameters(): void {
       input = select;
     } else {
       const text = document.createElement('input');
+      text.setAttribute('aria-label', p.name);
       text.value = p.defaultValue === undefined ? '' : String(p.defaultValue);
       text.onchange = () => vscode.postMessage({ type: 'parameterChanged', name: p.name, value: text.value });
       input = text;
