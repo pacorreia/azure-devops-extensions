@@ -1,0 +1,9 @@
+resources:
+  repositories:
+    - repository: common
+      type: git
+      name: myproject/common-pipes
+extends:
+  template: base.yml@common
+  parameters:
+    appName: demo

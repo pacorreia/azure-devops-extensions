@@ -1,0 +1,29 @@
+name: azdo-pipeline-diagrams
+
+on:
+  push:
+    paths:
+      - 'azdo-pipeline-diagrams/**'
+  pull_request:
+    paths:
+      - 'azdo-pipeline-diagrams/**'
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: azdo-pipeline-diagrams
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: azdo-pipeline-diagrams/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - run: npm test

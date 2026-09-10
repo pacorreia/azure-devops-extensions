@@ -1,0 +1,5 @@
+parameters:
+  - name: appName
+    type: string
+steps:
+  - script: echo test ${{ parameters.appName }}
