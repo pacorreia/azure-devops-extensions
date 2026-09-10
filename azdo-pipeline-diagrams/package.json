@@ -131,7 +131,7 @@
     "watch": "node esbuild.mjs --watch",
     "lint": "eslint . --ext .ts",
     "test": "vitest run",
-    "check": "pnpm run lint && pnpm run build && pnpm run test"
+    "check": "npm run lint && npm run build && npm run test"
   },
   "devDependencies": {
     "@types/node": "^22.7.5",
