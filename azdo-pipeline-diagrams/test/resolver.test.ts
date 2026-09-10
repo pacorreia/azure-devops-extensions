@@ -1,4 +1,5 @@
 import path from 'node:path';
+import os from 'node:os';
 import fs from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -12,6 +13,7 @@ function createHost(rootMap: Record<string, string> = {}) {
   return {
     readFile: (p: string) => fs.readFile(p, 'utf8'),
     async fileExists(p: string) { try { await fs.access(p); return true; } catch { return false; } },
+    realpath: (p: string) => fs.realpath(p),
     resolveRepository: async (alias: string) => rootMap[alias],
     dirname: (p: string) => path.dirname(p),
     join: (...parts: string[]) => path.join(...parts),
@@ -27,7 +29,10 @@ describe('resolver', () => {
     const result = await resolver.resolve({ rootFile: root, rootContent: await fs.readFile(root, 'utf8') });
     expect(result.diagnostics.length).toBe(0);
     const stages = result.expanded.stages as Array<Record<string, unknown>>;
-    expect(stages[0].jobs).toBeTruthy();
+    const jobs = stages[0].jobs as Array<Record<string, unknown>>;
+    expect(jobs[0].job).toBe('Build');
+    const steps = jobs[0].steps as Array<Record<string, unknown>>;
+    expect(steps[0].script).toBe('echo test demo');
   });
 
   it('reports unresolved repo alias', async () => {
@@ -51,6 +56,9 @@ describe('resolver', () => {
     const stages = result.expanded.stages as Array<Record<string, unknown>>;
     expect(stages).toHaveLength(2);
     expect(stages.every((stage) => !Array.isArray(stage) && typeof stage === 'object')).toBe(true);
+    const buildSteps = (stages[0].jobs as Array<Record<string, unknown>>)[0].steps as Array<Record<string, unknown>>;
+    expect(buildSteps).toHaveLength(1);
+    expect(buildSteps[0].script).toBe('echo build');
     expect(stages[1].stage).toBe('Deploy_api');
     const deploySteps = (stages[1].jobs as Array<Record<string, unknown>>)[0].steps as Array<Record<string, unknown>>;
     expect(deploySteps[0].script).toBe('echo deploy api');
@@ -87,5 +95,26 @@ describe('resolver', () => {
     const buildStage = graph.nodes.find((node) => node.kind === 'stage' && node.label === 'Build');
 
     expect(buildStage?.file).toBe(fixture('base.yml'));
+  });
+
+  it('rejects templates that escape the repository root through symlinks', async () => {
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'resolver-symlink-'));
+    const outsideRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'resolver-outside-'));
+    try {
+      const root = path.join(tempRoot, 'root.yml');
+      const outsideTemplate = path.join(outsideRoot, 'outside.yml');
+      const linkedTemplate = path.join(tempRoot, 'linked.yml');
+      await fs.writeFile(root, 'steps:\n  - template: linked.yml\n', 'utf8');
+      await fs.writeFile(outsideTemplate, 'steps:\n  - script: echo outside\n', 'utf8');
+      await fs.symlink(outsideTemplate, linkedTemplate);
+
+      const resolver = new PipelineResolver(createHost(), { maxTemplateDepth: 20 });
+      const result = await resolver.resolve({ rootFile: root, rootContent: await fs.readFile(root, 'utf8') });
+
+      expect(result.diagnostics.some((d) => d.message.includes('Template path escapes repository root'))).toBe(true);
+    } finally {
+      await fs.rm(tempRoot, { recursive: true, force: true });
+      await fs.rm(outsideRoot, { recursive: true, force: true });
+    }
   });
 });

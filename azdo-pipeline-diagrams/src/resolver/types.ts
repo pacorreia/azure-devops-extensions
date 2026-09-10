@@ -15,6 +15,7 @@ export interface ProvenanceFrame {
 export interface ResolverHost {
   readFile(path: string): Promise<string>;
   fileExists(path: string): Promise<boolean>;
+  realpath(path: string): Promise<string>;
   resolveRepository(alias: string, repoName: string | undefined, rootFile: string): Promise<string | undefined>;
   dirname(path: string): string;
   join(...parts: string[]): string;

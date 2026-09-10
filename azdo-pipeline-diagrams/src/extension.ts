@@ -285,6 +285,9 @@ function createResolverHost(configuration: vscode.WorkspaceConfiguration): Resol
     async fileExists(file) {
       try { await fs.access(file); return true; } catch { return false; }
     },
+    async realpath(file) {
+      return fs.realpath(file);
+    },
     async resolveRepository(alias, repoName, rootFile) {
       const mappings = configuration.get<Record<string, string>>('repositoryMappings', {});
       const direct = mappings[alias] || (repoName ? mappings[repoName] : undefined);

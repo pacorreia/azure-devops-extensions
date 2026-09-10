@@ -136,6 +136,23 @@ export class PipelineResolver {
     });
   }
 
+  private extractTemplateSequence(value: unknown, path: string): unknown[] | undefined {
+    if (Array.isArray(value)) {
+      return value;
+    }
+    if (!value || typeof value !== 'object') {
+      return undefined;
+    }
+    const sequenceKey = path.match(/(?:^|\.)(stages|jobs|steps)$/)?.[1] as 'stages' | 'jobs' | 'steps' | undefined;
+    const sequence = sequenceKey ? (value as Record<string, unknown>)[sequenceKey] : undefined;
+    return Array.isArray(sequence) ? sequence : undefined;
+  }
+
+  private isWithinRoot(file: string, root: string): boolean {
+    const escapedRoot = root.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`^${escapedRoot}(?:[\\\\/]|$)`).test(file);
+  }
+
   private annotate(path: string, chain: ProvenanceFrame[]): void {
     this.provenanceByPath[path] = chain;
   }
@@ -153,7 +170,10 @@ export class PipelineResolver {
         const item = value[i];
         if (item && typeof item === 'object' && !Array.isArray(item) && 'template' in (item as Record<string, unknown>)) {
           const expandedTemplate = await this.expandTemplateReference(item as Record<string, unknown>, ctx, stack, `${path}[${i}]`);
-          if (Array.isArray(expandedTemplate)) {
+          const templateSequence = this.extractTemplateSequence(expandedTemplate, path);
+          if (templateSequence) {
+            output.push(...templateSequence);
+          } else if (Array.isArray(expandedTemplate)) {
             output.push(...expandedTemplate);
           } else if (expandedTemplate !== undefined) {
             output.push(expandedTemplate);
@@ -187,9 +207,13 @@ export class PipelineResolver {
       const output: Record<string, unknown> = {};
       const entries = Object.entries(input);
       let branchSelected = false;
+      let hasControlEntries = false;
+      let hasPlainEntries = false;
+      let controlProducedOutput = false;
       for (const [key, val] of entries) {
         const ctrl = key.match(TEMPLATE_KEY_RE);
         if (ctrl) {
+          hasControlEntries = true;
           const kind = ctrl[1];
           const body = ctrl[2].trim();
           if (kind === 'if' || kind === 'elseif') {
@@ -197,6 +221,7 @@ export class PipelineResolver {
             const condition = kind === 'if' ? body : body;
             if (evaluateExpression(condition, this.getExprContext(ctx))) {
               branchSelected = true;
+              controlProducedOutput = true;
               const expanded = await this.expandAny(val, ctx, stack, `${path}.${key}`);
               if (expanded && typeof expanded === 'object' && !Array.isArray(expanded)) Object.assign(output, expanded as Record<string, unknown>);
               if (Array.isArray(expanded)) output.__insertedArray = [...(output.__insertedArray as unknown[] ?? []), ...expanded];
@@ -205,6 +230,7 @@ export class PipelineResolver {
           }
           if (kind === 'else') {
             if (!branchSelected) {
+              controlProducedOutput = true;
               const expanded = await this.expandAny(val, ctx, stack, `${path}.${key}`);
               if (expanded && typeof expanded === 'object' && !Array.isArray(expanded)) Object.assign(output, expanded as Record<string, unknown>);
               if (Array.isArray(expanded)) output.__insertedArray = [...(output.__insertedArray as unknown[] ?? []), ...expanded];
@@ -218,6 +244,7 @@ export class PipelineResolver {
             const iterable = evaluateExpression(eachMatch[2], this.getExprContext(ctx));
             const entriesList = Array.isArray(iterable) ? iterable.map((v, i) => [i, v]) : Object.entries((iterable ?? {}) as Record<string, unknown>);
             for (const [, item] of entriesList) {
+              controlProducedOutput = true;
               const eachCtx: ResolveContext = { ...ctx, locals: { ...(ctx.locals ?? {}), [localName]: item } };
               const expanded = await this.expandAny(val, eachCtx, stack, `${path}.${key}`);
               if (Array.isArray(expanded)) {
@@ -229,18 +256,23 @@ export class PipelineResolver {
             continue;
           }
           if (kind === 'insert') {
+            controlProducedOutput = true;
             const expanded = await this.expandAny(val, ctx, stack, `${path}.${key}`);
             if (expanded && typeof expanded === 'object' && !Array.isArray(expanded)) Object.assign(output, expanded as Record<string, unknown>);
             continue;
           }
         }
 
+        hasPlainEntries = true;
         const expandedValue = await this.expandAny(val, ctx, stack, `${path}.${key}`);
         output[key] = expandedValue;
       }
 
       if (Array.isArray(output.__insertedArray)) {
         return output.__insertedArray;
+      }
+      if (hasControlEntries && !hasPlainEntries && !controlProducedOutput && Object.keys(output).length === 0) {
+        return undefined;
       }
       return output;
     }
@@ -300,11 +332,17 @@ export class PipelineResolver {
 
     const normalizedRepoRoot = this.host.normalize(repoRoot);
     const resolvedFile = this.host.normalize(this.host.resolvePath(normalizedRepoRoot, templatePath));
-    const escapedRoot = normalizedRepoRoot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const inRoot = new RegExp(`^${escapedRoot}(?:[\\\\/]|$)`).test(resolvedFile);
-    if (!inRoot) {
+    if (!this.isWithinRoot(resolvedFile, normalizedRepoRoot)) {
       this.addDiagnostic(ctx.currentFile, `Template path escapes repository root: ${templateRef}`, 'error');
       return { type: 'placeholder', reason: 'invalid-template-path', template: templateRef };
+    }
+    if (await this.host.fileExists(resolvedFile)) {
+      const realRepoRoot = this.host.normalize(await this.host.realpath(normalizedRepoRoot));
+      const realResolvedFile = this.host.normalize(await this.host.realpath(resolvedFile));
+      if (!this.isWithinRoot(realResolvedFile, realRepoRoot)) {
+        this.addDiagnostic(ctx.currentFile, `Template path escapes repository root: ${templateRef}`, 'error');
+        return { type: 'placeholder', reason: 'invalid-template-path', template: templateRef };
+      }
     }
     const passedParams = (templateNode.parameters && typeof templateNode.parameters === 'object') ? (await this.expandAny(templateNode.parameters, ctx, stack, `${path}.parameters`)) as Record<string, unknown> : {};
 
