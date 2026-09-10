@@ -35,6 +35,7 @@ export class SchemaService {
     const schemaUrl = configuration.get<string>('schemaUrl') || (org ? `https://dev.azure.com/${org}/_apis/distributedtask/yamlschema` : undefined);
     if (!schemaUrl) {
       await this.context.globalState.update(CACHE_KEY, undefined);
+      await this.context.globalState.update(CACHE_URL_KEY, undefined);
       return;
     }
 
