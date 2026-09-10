@@ -126,6 +126,16 @@ export class PipelineResolver {
     return { parameters: ctx.parameters, variables: ctx.variables, locals: ctx.locals };
   }
 
+  private expandString(value: string, ctx: ResolveContext): unknown {
+    if (isExpressionTemplate(value)) {
+      return evaluateExpression(unwrapExpressionTemplate(value), this.getExprContext(ctx));
+    }
+    return value.replace(/\$\{\{([\s\S]+?)\}\}/g, (_match, expr: string) => {
+      const evaluated = evaluateExpression(expr, this.getExprContext(ctx));
+      return evaluated === undefined || evaluated === null ? '' : String(evaluated);
+    });
+  }
+
   private annotate(path: string, chain: ProvenanceFrame[]): void {
     this.provenanceByPath[path] = chain;
   }
@@ -133,8 +143,8 @@ export class PipelineResolver {
   private async expandAny(value: unknown, ctx: ResolveContext, stack: Set<string>, path: string): Promise<unknown> {
     this.annotate(path, ctx.chain);
 
-    if (typeof value === 'string' && isExpressionTemplate(value)) {
-      return evaluateExpression(unwrapExpressionTemplate(value), this.getExprContext(ctx));
+    if (typeof value === 'string') {
+      return this.expandString(value, ctx);
     }
 
     if (Array.isArray(value)) {

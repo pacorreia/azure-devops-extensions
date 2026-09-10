@@ -32,6 +32,14 @@ let currentCompareGraph: { nodes: Node[]; edges: Edge[] } | undefined;
 let currentSvg: SVGSVGElement | null = null;
 let currentParameters: Array<{ name: string; type: string; values?: unknown[]; defaultValue?: unknown }> = [];
 
+function coerceParameterValue(type: string, value: string): unknown {
+  if (type === 'number') {
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? value : parsed;
+  }
+  return value;
+}
+
 (document.getElementById('params') as HTMLButtonElement).onclick = () => { paramsPanel.hidden = !paramsPanel.hidden; };
 (document.getElementById('export') as HTMLButtonElement).onclick = () => vscode.postMessage({ type: 'exportRequest' });
 (document.getElementById('compare') as HTMLButtonElement).onclick = () => vscode.postMessage({ type: 'toggleCompare' });
@@ -161,20 +169,24 @@ function renderParameters(): void {
     } else if (Array.isArray(p.values) && p.values.length > 0) {
       const select = document.createElement('select');
       select.setAttribute('aria-label', p.name);
-      for (const v of p.values) {
+      for (const [i, v] of p.values.entries()) {
         const opt = document.createElement('option');
-        opt.value = String(v);
+        opt.value = String(i);
         opt.textContent = String(v);
         if (v === p.defaultValue) opt.selected = true;
         select.appendChild(opt);
       }
-      select.onchange = () => vscode.postMessage({ type: 'parameterChanged', name: p.name, value: select.value });
+      select.onchange = () => {
+        const selected = p.values?.[select.selectedIndex];
+        const value = selected === undefined ? coerceParameterValue(p.type, select.value) : selected;
+        vscode.postMessage({ type: 'parameterChanged', name: p.name, value });
+      };
       input = select;
     } else {
       const text = document.createElement('input');
       text.setAttribute('aria-label', p.name);
       text.value = p.defaultValue === undefined ? '' : String(p.defaultValue);
-      text.onchange = () => vscode.postMessage({ type: 'parameterChanged', name: p.name, value: text.value });
+      text.onchange = () => vscode.postMessage({ type: 'parameterChanged', name: p.name, value: coerceParameterValue(p.type, text.value) });
       input = text;
     }
     row.appendChild(input);

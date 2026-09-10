@@ -51,6 +51,9 @@ describe('resolver', () => {
     const stages = result.expanded.stages as Array<Record<string, unknown>>;
     expect(stages).toHaveLength(2);
     expect(stages.every((stage) => !Array.isArray(stage) && typeof stage === 'object')).toBe(true);
+    expect(stages[1].stage).toBe('Deploy_api');
+    const deploySteps = (stages[1].jobs as Array<Record<string, unknown>>)[0].steps as Array<Record<string, unknown>>;
+    expect(deploySteps[0].script).toBe('echo deploy api');
   });
 
   it('re-emits dependencies when the same resolver instance is reused', async () => {
