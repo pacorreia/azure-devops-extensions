@@ -5,6 +5,11 @@
   "version": "1.0.0",
   "packageManager": "pnpm@10.17.1",
   "publisher": "pacorreia",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pacorreia/azure-devops-extensions.git",
+    "directory": "azdo-pipeline-diagrams"
+  },
   "license": "MIT",
   "engines": {
     "vscode": "^1.85.0"
@@ -138,6 +143,7 @@
     "@types/vscode": "^1.85.0",
     "@typescript-eslint/eslint-plugin": "^8.44.0",
     "@typescript-eslint/parser": "^8.44.0",
+    "@vscode/vsce": "^3.9.2",
     "esbuild": "^0.28.1",
     "eslint": "^8.57.1",
     "typescript": "^5.9.2",
