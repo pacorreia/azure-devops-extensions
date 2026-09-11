@@ -67,7 +67,9 @@ jobs:
         run: pnpm run build
       - name: Build VSIX package
         working-directory: azdo-pipeline-diagrams
-        run: pnpm exec vsce package --no-dependencies
+        env:
+          npm_config_loglevel: error
+        run: npx --yes @vscode/vsce@3.9.2 package --no-dependencies
       - name: Upload VSIX to release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
