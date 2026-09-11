@@ -10,6 +10,11 @@ on:
       - '.release-please-manifest.json'
       - '.github/workflows/azdo-pipeline-diagrams-release.yml'
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing release tag to package and upload a VSIX for
+        required: false
+        type: string
 
 jobs:
   release-please:
@@ -19,7 +24,7 @@ jobs:
       pull-requests: write
     outputs:
       release_created: ${{ steps.release.outputs.release_created || steps.release.outputs['azdo-pipeline-diagrams--release_created'] }}
-      tag_name: ${{ steps.release.outputs.tag_name || steps.release.outputs['azdo-pipeline-diagrams--tag_name'] }}
+      tag_name: ${{ steps.resolve-tag.outputs.tag_name }}
     steps:
       - id: release
         uses: googleapis/release-please-action@v4
@@ -28,15 +33,21 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
           include-component-in-tag: true
+      - id: resolve-tag
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag_name || steps.release.outputs['azdo-pipeline-diagrams--tag_name'] || inputs.release_tag }}
+        run: echo "tag_name=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
 
   upload-vsix:
     needs: release-please
-    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    if: ${{ needs.release-please.outputs.release_created == 'true' || needs.release-please.outputs.tag_name != '' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
       - uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
