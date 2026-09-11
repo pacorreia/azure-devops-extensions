@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Existing release tag to package and upload a VSIX for
+        description: Existing release tag or version (for example azdo-pipeline-diagrams-v1.0.0, v1.0.0, or 1.0.0) to package and upload a VSIX for
         required: false
         type: string
 
@@ -36,7 +36,11 @@ jobs:
       - id: resolve-tag
         env:
           RELEASE_TAG: ${{ steps.release.outputs.tag_name || steps.release.outputs['azdo-pipeline-diagrams--tag_name'] || inputs.release_tag }}
-        run: echo "tag_name=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
+        run: |
+          if [ -n "$RELEASE_TAG" ] && [[ "$RELEASE_TAG" != azdo-pipeline-diagrams-v* ]]; then
+            RELEASE_TAG="azdo-pipeline-diagrams-v${RELEASE_TAG#v}"
+          fi
+          echo "tag_name=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
 
   upload-vsix:
     needs: release-please
