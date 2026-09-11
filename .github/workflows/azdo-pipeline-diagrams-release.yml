@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - 'azdo-pipeline-diagrams/**'
+      - 'release-please-config.json'
+      - '.release-please-manifest.json'
       - '.github/workflows/azdo-pipeline-diagrams-release.yml'
   workflow_dispatch:
 
@@ -20,13 +22,12 @@ jobs:
       tag_name: ${{ steps.release.outputs.tag_name || steps.release.outputs['azdo-pipeline-diagrams--tag_name'] }}
     steps:
       - id: release
-        uses: google-github-actions/release-please-action@v4
+        uses: googleapis/release-please-action@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          release-type: node
-          package-name: azdo-pipeline-diagrams
-          path: azdo-pipeline-diagrams
-          monorepo-tags: true
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          include-component-in-tag: true
 
   upload-vsix:
     needs: release-please
