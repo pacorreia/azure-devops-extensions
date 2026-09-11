@@ -5,6 +5,11 @@
   "version": "1.0.0",
   "packageManager": "pnpm@10.17.1",
   "publisher": "pacorreia",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pacorreia/azure-devops-extensions.git",
+    "directory": "azdo-pipeline-diagrams"
+  },
   "license": "MIT",
   "engines": {
     "vscode": "^1.85.0"
