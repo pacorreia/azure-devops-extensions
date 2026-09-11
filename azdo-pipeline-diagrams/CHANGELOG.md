@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/pacorreia/azure-devops-extensions/compare/azdo-pipeline-diagrams-v1.0.0...azdo-pipeline-diagrams-v1.0.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* clean up release workflow warnings ([1478554](https://github.com/pacorreia/azure-devops-extensions/commit/14785549c4b8aaed7c316a11498ae78f644242c2))
+
 ## 1.0.0 (2026-09-11)
 
 

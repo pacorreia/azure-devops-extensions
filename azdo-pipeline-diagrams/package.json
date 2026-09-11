@@ -2,7 +2,7 @@
   "name": "azdo-pipeline-diagrams",
   "displayName": "AzDO Pipeline Diagrams",
   "description": "Preview and export Azure DevOps YAML pipeline diagrams.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "packageManager": "pnpm@10.17.1",
   "publisher": "pacorreia",
   "repository": {
