@@ -17,14 +17,18 @@ export function buildGraph(expanded: Record<string, unknown>, provenanceByPath: 
 
   const stages = asArray<Record<string, unknown>>(expanded.stages);
   const hasStages = stages.length > 0;
-  const normalizedStages = hasStages ? stages : [{ stage: 'default', jobs: expanded.jobs ?? [{ job: 'default', steps: expanded.steps ?? [] }] } as Record<string, unknown>];
+  const topLevelJobs = asArray<Record<string, unknown>>(expanded.jobs);
+  const usesTopLevelJobs = !hasStages && topLevelJobs.length > 0;
+  const normalizedStages = hasStages
+    ? stages
+    : [{ stage: 'default', jobs: usesTopLevelJobs ? topLevelJobs : [{ job: 'default', steps: expanded.steps ?? [] }] } as Record<string, unknown>];
   const stageIds = normalizedStages.map((stage, i) => ({ id: `stage:${i}`, name: String(stage.stage ?? `Stage ${i + 1}`) }));
 
   let prevStageId: string | undefined;
   for (let s = 0; s < normalizedStages.length; s += 1) {
     const stage = normalizedStages[s];
     const stageId = `stage:${s}`;
-    const stagePath = `$.stages[${s}]`;
+    const stagePath = hasStages ? `$.stages[${s}]` : '$';
     nodes.push({ id: stageId, label: toStr(stage.stage, `Stage ${s + 1}`), kind: 'stage', parentId: 'pipeline', condition: typeof stage.condition === 'string' ? stage.condition : undefined, file: sourceFile(stagePath) });
     edges.push({ id: `e:pipeline:${stageId}`, source: 'pipeline', target: stageId });
 
@@ -47,7 +51,7 @@ export function buildGraph(expanded: Record<string, unknown>, provenanceByPath: 
       const job = jobs[j];
       const jobId = `${stageId}:job:${j}`;
       const isDeployment = 'deployment' in job;
-      const jobPath = `${stagePath}.jobs[${j}]`;
+      const jobPath = hasStages ? `${stagePath}.jobs[${j}]` : usesTopLevelJobs ? `$.jobs[${j}]` : '$';
       nodes.push({ id: jobId, label: toStr(job.job ?? job.deployment, `Job ${j + 1}`), kind: isDeployment ? 'deployment' : 'job', parentId: stageId, condition: typeof job.condition === 'string' ? job.condition : undefined, file: sourceFile(jobPath) });
       edges.push({ id: `e:${stageId}:${jobId}`, source: stageId, target: jobId });
 
@@ -73,7 +77,9 @@ export function buildGraph(expanded: Record<string, unknown>, provenanceByPath: 
 
       const deploymentSteps = (((job.strategy as Record<string, unknown> | undefined)?.runOnce as Record<string, unknown> | undefined)?.deploy as Record<string, unknown> | undefined)?.steps;
       const steps = asArray<Record<string, unknown>>(job.steps ?? deploymentSteps);
-      const stepPathPrefix = job.steps ? `${jobPath}.steps` : `${jobPath}.strategy.runOnce.deploy.steps`;
+      const stepPathPrefix = hasStages || usesTopLevelJobs
+        ? (job.steps ? `${jobPath}.steps` : `${jobPath}.strategy.runOnce.deploy.steps`)
+        : '$.steps';
       let prevStepId: string | undefined;
       for (let k = 0; k < steps.length; k += 1) {
         const step = steps[k];

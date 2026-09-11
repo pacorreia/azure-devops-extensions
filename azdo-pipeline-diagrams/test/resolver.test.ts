@@ -99,6 +99,29 @@ describe('resolver', () => {
     expect(testStep?.file).toBe(fixture('steps-test.yml'));
   });
 
+  it('maps top-level jobs/steps from templates back to template source files', async () => {
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'resolver-top-level-'));
+    try {
+      const root = path.join(tempRoot, 'root.yml');
+      const jobsTemplate = path.join(tempRoot, 'jobs.yml');
+      const stepsTemplate = path.join(tempRoot, 'steps.yml');
+      await fs.writeFile(root, 'jobs:\n  - template: jobs.yml\n', 'utf8');
+      await fs.writeFile(jobsTemplate, 'jobs:\n  - job: Build\n    steps:\n      - template: steps.yml\n', 'utf8');
+      await fs.writeFile(stepsTemplate, 'steps:\n  - script: echo nested\n', 'utf8');
+
+      const resolver = new PipelineResolver(createHost(), { maxTemplateDepth: 20 });
+      const result = await resolver.resolve({ rootFile: root, rootContent: await fs.readFile(root, 'utf8') });
+      const graph = buildGraph(result.expanded, result.provenanceByPath);
+      const buildJob = graph.nodes.find((node) => node.kind === 'job' && node.label === 'Build');
+      const nestedStep = graph.nodes.find((node) => node.kind === 'step' && node.label === 'echo nested');
+
+      expect(buildJob?.file).toBe(jobsTemplate);
+      expect(nestedStep?.file).toBe(stepsTemplate);
+    } finally {
+      await fs.rm(tempRoot, { recursive: true, force: true });
+    }
+  });
+
   it('rejects templates that escape the repository root through symlinks', async () => {
     const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'resolver-symlink-'));
     const outsideRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'resolver-outside-'));
