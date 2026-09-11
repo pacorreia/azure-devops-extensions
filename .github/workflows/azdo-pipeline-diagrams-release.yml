@@ -47,6 +47,9 @@ jobs:
       - name: Install dependencies
         working-directory: azdo-pipeline-diagrams
         run: pnpm install --frozen-lockfile
+      - name: Build extension
+        working-directory: azdo-pipeline-diagrams
+        run: pnpm run build
       - name: Build VSIX package
         working-directory: azdo-pipeline-diagrams
         run: npx --yes @vscode/vsce package --no-dependencies
