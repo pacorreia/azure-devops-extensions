@@ -1,0 +1,15 @@
+parameters:
+  - name: appName
+    type: string
+jobs:
+  - job: Build
+    strategy:
+      matrix:
+        linux:
+          vm: ubuntu-latest
+        windows:
+          vm: windows-latest
+    steps:
+      - template: steps-test.yml
+        parameters:
+          appName: ${{ parameters.appName }}

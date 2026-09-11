@@ -1,0 +1,10 @@
+parameters:
+  - name: appName
+    type: string
+    default: app
+stages:
+  - stage: Build
+    jobs:
+      - template: jobs-build.yml
+        parameters:
+          appName: ${{ parameters.appName }}

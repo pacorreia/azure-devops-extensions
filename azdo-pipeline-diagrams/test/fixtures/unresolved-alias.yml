@@ -1,0 +1,7 @@
+resources:
+  repositories:
+    - repository: common
+      type: git
+      name: org/proj/common
+jobs:
+  - template: jobs/build.yml@common

@@ -1,0 +1,152 @@
+{
+  "name": "azdo-pipeline-diagrams",
+  "displayName": "AzDO Pipeline Diagrams",
+  "description": "Preview and export Azure DevOps YAML pipeline diagrams.",
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.17.1",
+  "publisher": "pacorreia",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:azdoDiagram.openPreview",
+    "onCommand:azdoDiagram.openPreviewToSide",
+    "onCommand:azdoDiagram.openPreviewForFile",
+    "onCommand:azdoDiagram.exportDiagram",
+    "onCommand:azdoDiagram.refreshSchema",
+    "onCommand:azdoDiagram.mapRepository",
+    "onCommand:azdoDiagram.saveParameterPreset",
+    "onCommand:azdoDiagram.loadParameterPreset"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "azdoDiagram.openPreview",
+        "title": "AzDO Diagram: Open Preview"
+      },
+      {
+        "command": "azdoDiagram.openPreviewToSide",
+        "title": "AzDO Diagram: Open Preview to the Side"
+      },
+      {
+        "command": "azdoDiagram.openPreviewForFile",
+        "title": "AzDO Diagram: Open Preview for File…"
+      },
+      {
+        "command": "azdoDiagram.exportDiagram",
+        "title": "AzDO Diagram: Export Diagram…"
+      },
+      {
+        "command": "azdoDiagram.refreshSchema",
+        "title": "AzDO Diagram: Refresh Schema"
+      },
+      {
+        "command": "azdoDiagram.mapRepository",
+        "title": "AzDO Diagram: Map Repository…"
+      },
+      {
+        "command": "azdoDiagram.saveParameterPreset",
+        "title": "AzDO Diagram: Save Parameter Preset…"
+      },
+      {
+        "command": "azdoDiagram.loadParameterPreset",
+        "title": "AzDO Diagram: Load Parameter Preset…"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "when": "resourceExtname == .yml || resourceExtname == .yaml",
+          "command": "azdoDiagram.openPreview",
+          "group": "navigation@9"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "AzDO Pipeline Diagram",
+      "properties": {
+        "azdoDiagram.organization": {
+          "type": "string",
+          "default": "",
+          "description": "Azure DevOps organization for schema fetch."
+        },
+        "azdoDiagram.schemaUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Optional schema URL override."
+        },
+        "azdoDiagram.repositoryMappings": {
+          "type": "object",
+          "default": {},
+          "description": "Repo alias/name to absolute local path mappings."
+        },
+        "azdoDiagram.maxTemplateDepth": {
+          "type": "number",
+          "default": 50,
+          "minimum": 1
+        },
+        "azdoDiagram.parameterPresets": {
+          "type": "object",
+          "default": {}
+        },
+        "azdoDiagram.defaultDetailLevel": {
+          "type": "string",
+          "enum": [
+            "stages",
+            "jobs",
+            "full"
+          ],
+          "default": "jobs"
+        },
+        "azdoDiagram.export.scale": {
+          "type": "number",
+          "default": 2,
+          "minimum": 1,
+          "maximum": 8
+        },
+        "azdoDiagram.export.background": {
+          "type": "string",
+          "default": "",
+          "description": "Export background color. Empty means transparent (except JPEG/PDF fallback to white)."
+        },
+        "azdoDiagram.export.includeParameters": {
+          "type": "boolean",
+          "default": true
+        },
+        "azdoDiagram.liveUpdateDebounceMs": {
+          "type": "number",
+          "default": 300,
+          "minimum": 50
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "lint": "eslint . --ext .ts",
+    "test": "vitest run",
+    "check": "npm run lint && npm run build && npm run test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^8.44.0",
+    "@typescript-eslint/parser": "^8.44.0",
+    "esbuild": "^0.28.1",
+    "eslint": "^8.57.1",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.11"
+  },
+  "dependencies": {
+    "elkjs": "^0.11.0",
+    "pdf-lib": "^1.17.1",
+    "vscode-json-languageservice": "^5.6.1",
+    "yaml": "^2.8.1"
+  }
+}

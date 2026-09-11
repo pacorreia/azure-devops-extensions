@@ -1,0 +1,23 @@
+parameters:
+  - name: runTests
+    type: boolean
+    default: true
+  - name: services
+    type: object
+    default:
+      - api
+      - web
+stages:
+  - stage: Build
+    jobs:
+      - job: Build
+        steps:
+          - script: echo build
+          - ${{ if eq(parameters.runTests, true) }}:
+              - script: echo tests
+  - ${{ each service in parameters.services }}:
+      - stage: Deploy_${{ service }}
+        jobs:
+          - job: Deploy
+            steps:
+              - script: echo deploy ${{ service }}

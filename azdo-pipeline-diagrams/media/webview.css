@@ -1,0 +1,27 @@
+:root {
+  color-scheme: light dark;
+}
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--vscode-font-family);
+  background: var(--vscode-editor-background);
+  color: var(--vscode-editor-foreground);
+}
+#app { display: flex; flex-direction: column; height: 100vh; }
+.toolbar { display: flex; gap: 8px; padding: 8px; border-bottom: 1px solid var(--vscode-panel-border); }
+#params-panel { border-bottom: 1px solid var(--vscode-panel-border); padding: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#content { flex: 1; overflow: auto; }
+.compare-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; height: 100%; }
+.compare-pane { min-height: 100%; border-left: 1px solid var(--vscode-panel-border); padding-left: 4px; }
+.compare-pane h3 { margin: 4px 0; font-size: 12px; }
+svg.diagram { min-height: 100%; color: var(--vscode-editor-foreground); }
+.node { fill: var(--vscode-button-secondaryBackground); stroke: var(--vscode-focusBorder); stroke-width: 1; }
+.node.stage { fill: var(--vscode-charts-blue); opacity: .2; }
+.node.job, .node.deployment { fill: var(--vscode-charts-orange); opacity: .2; }
+.node.step { fill: var(--vscode-charts-green); opacity: .2; }
+.edge { stroke: var(--vscode-editor-foreground); stroke-width: 1.2; }
+.label { fill: var(--vscode-editor-foreground); font-size: 12px; }
+g.highlight .node { stroke-width: 3; }
+.diff-node { stroke: var(--vscode-testing-iconFailed); stroke-width: 2; }
+.param-row { display: contents; }

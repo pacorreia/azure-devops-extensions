@@ -1,0 +1,21 @@
+stages:
+  - stage: Build
+    jobs:
+      - job: Compile
+        steps:
+          - script: echo build
+      - job: Test
+        dependsOn: Compile
+        condition: and(succeeded(), eq(variables.isMain, 'true'))
+        steps:
+          - script: echo test
+  - stage: Deploy
+    dependsOn: Build
+    jobs:
+      - deployment: Web
+        environment: prod
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - script: echo deploy

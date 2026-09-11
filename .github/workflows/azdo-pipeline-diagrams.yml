@@ -1,0 +1,29 @@
+name: azdo-pipeline-diagrams
+
+on:
+  push:
+    paths:
+      - 'azdo-pipeline-diagrams/**'
+  pull_request:
+    paths:
+      - 'azdo-pipeline-diagrams/**'
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: azdo-pipeline-diagrams
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+      - run: corepack enable
+      - run: corepack prepare pnpm@12.3.4 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run lint
+      - run: pnpm run build
+      - run: pnpm test

@@ -1,0 +1,55 @@
+name: azdo-pipeline-diagrams-release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'azdo-pipeline-diagrams/**'
+      - '.github/workflows/azdo-pipeline-diagrams-release.yml'
+  workflow_dispatch:
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created || steps.release.outputs['azdo-pipeline-diagrams--release_created'] }}
+      tag_name: ${{ steps.release.outputs.tag_name || steps.release.outputs['azdo-pipeline-diagrams--tag_name'] }}
+    steps:
+      - id: release
+        uses: google-github-actions/release-please-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          release-type: node
+          package-name: azdo-pipeline-diagrams
+          path: azdo-pipeline-diagrams
+          monorepo-tags: true
+
+  upload-vsix:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.17.1 --activate
+      - name: Install dependencies
+        working-directory: azdo-pipeline-diagrams
+        run: pnpm install --frozen-lockfile
+      - name: Build VSIX package
+        working-directory: azdo-pipeline-diagrams
+        run: npx --yes @vscode/vsce package --no-dependencies
+      - name: Upload VSIX to release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ needs.release-please.outputs.tag_name }}" azdo-pipeline-diagrams/*.vsix --clobber

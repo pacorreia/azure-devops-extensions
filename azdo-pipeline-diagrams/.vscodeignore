@@ -1,0 +1,7 @@
+.vscode/**
+test/**
+src/**
+*.ts
+.eslintrc.cjs
+vitest.config.mts
+node_modules/**/.cache/**
